@@ -1,5 +1,11 @@
-from scheduler.scheduler import sheduler
-import util
+import sys
+sys.path.append('/home/zbw/MIG/MIG_Schedule')
+
+
+from schedule.scheduler.scheduler import sheduler
+
+import util.util
+from util.util import *
 import socket
 import queue
 import threading
@@ -9,6 +15,7 @@ import copy
 state_table = {
 
 }
+    
 
 
 
@@ -21,11 +28,12 @@ class message:
 
 
 class config:
-    def __init__(self, ip, port, GPU_ID, MIG_Instace, Existence=False, MIG_UUID = None, Use_MPS=False, Open_MPS=False, MPS_Percentage = None):
+    def __init__(self, ip, port, GPU_ID, MIG_Instace ,Use_MIG=True, Existence=False, MIG_UUID = None, Use_MPS=False, Open_MPS=False, MPS_Percentage = None):
         self.ip = ip
         self.port = port
         self.GPU_ID = GPU_ID
         self.MIG_Instace = MIG_Instace
+        self.Use_MIG = Use_MIG
         self.Existence = Existence
         self.MIG_UUID = MIG_UUID
         self.Use_MPS = Use_MPS
@@ -106,50 +114,92 @@ class manager:
         server_address = (worker_ip, worker_port)
         client_socket.connect(server_address)
         cmd_type = 'config'
-        if value.Existence:
-            a = 1
-            # if value.Use_MPS:
-            #     if value.Open_MPS:
-            #         #查询MPS服务器的PID
-            #         cmd = f' CUDA_VISIBLE_DEVICES={value.MIG_UUID} && (echo get_server_list | sudo nvidia-cuda-mps-control)'
-            #         client_socket.sendall(cmd.encode())
-            #         mps_server_pid = client_socket.recv(1024).decode()
-            #         cmd = f'echo set_active_thread_percentage {mps_server_pid} {value.MPS_Percentage} | sudo nvidia-cuda-mps-control'
-            #     else:
-            #         cmd = f'sudo nvidia-cuda-mps-control -d && (echo start_server -uid 1002 | sudo nvidia-cuda-mps-control) '
-            #         client_socket.sendall(cmd.encode())
-            #         response = client_socket.recv(1024).decode()
-            #         cmd = f'echo get_server_list | sudo nvidia-cuda-mps-control'
-            #         client_socket.sendall(cmd.encode())
-            #         mps_server_pid = client_socket.recv(1024).decode()
-            #         cmd = f'echo set_active_thread_percentage {mps_server_pid} {value.MPS_Percentage} | sudo nvidia-cuda-mps-control'
-            #         client_socket.sendall(cmd.encode())
-            #         response = client_socket.recv(1024).decode()
-        else:
-            client_socket.sendall(cmd_type.encode())
-            response = client_socket.recv(1024).decode()
-            CI = util.MIG_instance_map.get(value.MIG_Instace)
+        table_item = None
+        UUID = None
+        # MIG配置
+        if value.Use_MIG:
+            if not value.Existence:
+                client_socket.sendall(cmd_type.encode())
+                response = client_socket.recv(1024).decode()
+                CI = util.MIG_instance_map.get(value.MIG_Instace)
 
-            cmd = "sudo nvidia-smi mig -i " + str(value.GPU_ID) + " -cgi "   + str(CI) + " -C"
+                cmd = "sudo nvidia-smi mig -i " + str(value.GPU_ID) + " -cgi "   + str(CI) + " -C"
 
-            client_socket.sendall(cmd.encode())
-            response = client_socket.recv(1024).decode()
+                client_socket.sendall(cmd.encode())
+                response = client_socket.recv(1024).decode()
 
+                GI_ID = response
 
-            util.get_uuid()
+                uuid_list = util.get_uuid(value.ip, 22222, value.GPU_ID, value.MIG_Instace)
+                uuid_Existence = state_table.keys()
 
-            # value.MIG_UUID = util.get_uuid(value.ip, value.GPU_ID, value.MIG_Instace)
-        
+                for i in uuid_list:
+                    if i in uuid_Existence:
+                        continue
+                    else:
+                        table_item = table_value(ip=value.ip, port=value.port, GPU_ID=value.GPU_ID, GI_ID=GI_ID, MIG_config=value.MIG_Instace)
+                        state_table[i] =  table_item  
+
+                        value.MIG_UUID = i        
+
+        # MPS配置
+        print("MIG config successfully")
+        if value.Use_MPS:
+                if value.Open_MPS:
+                    client_socket.sendall(cmd_type.encode())
+                    response = client_socket.recv(1024).decode()
+                    #查询MPS服务器的PID
+                    CUDA_MPS_PIPE_DIRECTORY = f'/tmp/{value.MIG_UUID}-pipe'
+                    CUDA_MPS_LOG_DIRECTORY=f'/tmp/{value.MIG_UUID}-log'
+                    cmd = f'export CUDA_MPS_PIPE_DIRECTORY={CUDA_MPS_PIPE_DIRECTORY} && export CUDA_MPS_LOG_DIRECTORY={CUDA_MPS_LOG_DIRECTORY} && export CUDA_VISIBLE_DEVICES={value.MIG_UUID} && (echo get_server_list | sudo -E nvidia-cuda-mps-control)'
+                    client_socket.sendall(cmd.encode())
+                    mps_server_pid = client_socket.recv(1024).decode()
+
+                    client_socket.sendall(cmd_type.encode())
+                    response = client_socket.recv(1024).decode()
+                    cmd = f'export CUDA_MPS_PIPE_DIRECTORY={CUDA_MPS_PIPE_DIRECTORY} && export CUDA_MPS_LOG_DIRECTORY={CUDA_MPS_LOG_DIRECTORY} && export CUDA_VISIBLE_DEVICES={value.MIG_UUID} && echo set_active_thread_percentage {mps_server_pid} {value.MPS_Percentage} | sudo -E nvidia-cuda-mps-control'
+                    client_socket.sendall(cmd.encode())
+                    response = client_socket.recv(1024).decode()
+                else:
+                    client_socket.sendall(cmd_type.encode())
+                    response = client_socket.recv(1024).decode()
+                    CUDA_MPS_PIPE_DIRECTORY = f'/tmp/{value.MIG_UUID}-pipe'
+                    CUDA_MPS_LOG_DIRECTORY=f'/tmp/{value.MIG_UUID}-log'
+                    cmd = f'export CUDA_MPS_PIPE_DIRECTORY={CUDA_MPS_PIPE_DIRECTORY} && export CUDA_MPS_LOG_DIRECTORY={CUDA_MPS_LOG_DIRECTORY} && export CUDA_VISIBLE_DEVICES={value.MIG_UUID} && sudo -E nvidia-cuda-mps-control -d && (echo start_server -uid 1002 | sudo -E nvidia-cuda-mps-control) '
+                    client_socket.sendall(cmd.encode())
+                    response = client_socket.recv(1024).decode()
+
+                    
+                    # client_socket.sendall(cmd_type.encode())
+                    # response = client_socket.recv(1024).decode()
+                    # cmd = f'export CUDA_MPS_PIPE_DIRECTORY={CUDA_MPS_PIPE_DIRECTORY} && export CUDA_MPS_LOG_DIRECTORY={CUDA_MPS_LOG_DIRECTORY} && export CUDA_VISIBLE_DEVICES={value.MIG_UUID} && (echo get_server_list | sudo -E nvidia-cuda-mps-control)'
+                    # client_socket.sendall(cmd.encode())
+                    # mps_server_pid = client_socket.recv(1024).decode()
+
+                    # client_socket.sendall(cmd_type.encode())
+                    # response = client_socket.recv(1024).decode()
+                    # cmd = f'export CUDA_MPS_PIPE_DIRECTORY={CUDA_MPS_PIPE_DIRECTORY} && export CUDA_MPS_LOG_DIRECTORY={CUDA_MPS_LOG_DIRECTORY} && export CUDA_VISIBLE_DEVICES={value.MIG_UUID} && echo set_active_thread_percentage {mps_server_pid} {value.MPS_Percentage} | sudo -E nvidia-cuda-mps-control'
+                    # client_socket.sendall(cmd.encode())
+                    # response = client_socket.recv(1024).decode()
 
         cmd_type = 'run'
         client_socket.sendall(cmd_type.encode())
         response = client_socket.recv(1024).decode()
-        cmd = f'cd {key.work_dir} && CUDA_VISIBLE_DEVICES=MIG-32522c13-1a59-5776-9d30-e0ae7b6a4874  conda run -n {key.dev} {key.command}'
+
+        if value.Use_MPS:
+            cmd = f'{value.MIG_UUID},Y,{key.work_dir},{key.dev},{key.command},{value.MPS_Percentage}'
+        else:
+            cmd = f'{value.MIG_UUID},N,{key.work_dir},{key.dev},{key.command},{value.MPS_Percentage}'
+        # cmd = f'cd {key.work_dir} && CUDA_VISIBLE_DEVICES={value.MIG_UUID}  conda run -n {key.dev} {key.command}'
         client_socket.sendall(cmd.encode())
         response = client_socket.recv(1024).decode()
 
-        cmd_type = 'finish'
-        client_socket.sendall(cmd_type.encode())
+        state_table[value.MIG_UUID].job_list.append(cmd)
+
+        for i in state_table.keys():
+            print(i, state_table[i])
+
+
         client_socket.close()
 
 
@@ -160,8 +210,14 @@ class manager:
                 if not data:
                     print(f"Client {client_address} disconnected.")
                     break
+                data = data.decode()
+                data_list = data.split(",")
+                key = data_list[0]
+                command = data_list[1]
                 with self.state_table_lock:
-                    print(data.decode())
+                    state_table[key].job_list.remove(command)
+                    for i in state_table.keys():
+                        print(i, state_table[i])
                     
             client_socket.close()
 
@@ -180,12 +236,5 @@ class manager:
         server_thread = threading.Thread(target=start_server)
         server_thread.start()
 
-
-test = manager(None, 12345)
-
-key = message('/home/zbw/MIG/schedule,Abacus,python test_program.py')
-value = config(ip='172.18.36.131', port=12345, GPU_ID=0, MIG_Instace='2g.20gb')
-test.state_table()
-test.do_shecudle(key, value)
 
 

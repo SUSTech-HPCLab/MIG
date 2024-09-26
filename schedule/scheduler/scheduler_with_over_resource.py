@@ -87,7 +87,7 @@ config_map = {7:"1c-7g-80gb", 4:"1c-4g-40gb", 3:"1c-3g-40gb", 2:"1c-2g-20gb", 1:
 
 reverser_map = {"1c-7g-80gb" : 7, "1c-4g-40gb": 4, "1c-3g-40gb":3, "1c-2g-20gb":2, "1c-1g-10gb":1, "baseline":100}
 
-class I_sheduler:
+class I_sheduler_with_over_resource:
     def __init__(self, GPU_list = [[]], max_job_per_GPU=7, cluster_algorithm='number_of_job'):
         self.GPU_list = GPU_list
         self.config_list = []
@@ -270,21 +270,44 @@ class I_sheduler:
             return min_index, min_num
     
     
-    
+
+
     def partition_optimizer(self, jobs, GPU_index):
         online_jobs = []
         offline_jobs = []
+        for i in jobs:
+            if isinstance(i, online_job):
+                online_jobs.append(i)
+            else:
+                offline_jobs.append(i)
+        online_config = []
+        for i in online_jobs:
+            config_id = self.best_fit(i)
+            online_config.append(config_id)
+        
+        throught = self.throughput[GPU_index]
 
+        configs = util.util.get_MIG_config()
+        return self.partition_optimizer_with_online_config(jobs, GPU_index, online_config) 
+       
+
+    
+    def partition_optimizer_with_online_config(self, jobs, GPU_index, online_config):
+        online_jobs = []
+        offline_jobs = []
+        configs = util.util.get_MIG_config()
         for i in jobs:
             if isinstance(i, online_job):
                 online_jobs.append(i)
             else:
                 offline_jobs.append(i)
        
-        online_config = []
+        online_config = online_config
 
-        for i in online_jobs:
-            online_config.append(self.best_fit(i))
+        # for i in online_jobs:
+        #     config_id = self.best_fit(i)
+
+        #     online_config.append(config_id)
 
         concurrency_jobs = []
         for i in range(0, len(online_jobs)):
@@ -429,6 +452,7 @@ class I_sheduler:
            
             self.GPU_list[GPU_index].append([i])
             self.config_list[GPU_index].append(best_config.get(i))
+
         return best_obj
 
 

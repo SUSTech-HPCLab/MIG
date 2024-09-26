@@ -1,0 +1,2 @@
+Successfully created GPU instance ID 13 on GPU  0 using profile MIG 1g.10gb (ID 19)
+Successfully created compute instance ID  0 on GPU  0 GPU instance ID 13 using profile MIG 1g.10gb (ID  0)

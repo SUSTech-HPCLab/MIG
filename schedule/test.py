@@ -1,21 +1,26 @@
-import socket
 
-# def communicate_with_server(server_ip, server_port, message):
-#     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-#     server_address = (server_ip, server_port)
-#     client_socket.connect(server_address)
+from manager import *
+from util import *
 
-#     client_socket.sendall(message.encode())
+import subprocess
+import os
 
-#     client_socket.close()
+# command = "sudo nvidia-smi mig -i 0 -cgi 14 -C"
+# output = os.system(command)
+# print(output)
+# table_item = table_value(ip='172.18.36.131', port=12345, GPU_ID=0, GI_ID=3, MIG_config='2g.20gb')
+# destory_instance(table_item)
+# table_item = table_value(ip='172.18.36.131', port=12345, GPU_ID=0, GI_ID=4, MIG_config='2g.20gb')
+# destory_instance(table_item)
 
-# server_ip = '0.0.0.0'  # 服务器的IP地址
-# server_port = 12345  # 服务器的端口
-# message = "Hello, server!"
+test = manager(None, 12345)
 
-# communicate_with_server(server_ip, server_port, message)
+key = message('/home/zbw/MIG/MIG_Schedule/schedule,Abacus,python test_program.py')
+value = config(ip='172.18.36.119' ,port=12345 ,GPU_ID=0 ,MIG_Instace='2g.20gb', Use_MPS=True, Open_MPS=False, MPS_Percentage=10)
+test.state_table()
+test.do_shecudle(key, value)
 
-input = "cd test && CUDA_VISIBLE_DEVICES=MIG-32522c13-1a59-5776-9d30-e0ae7b6a4874  conda run -n test test"
-cuda_visible_devices = input.split('CUDA_VISIBLE_DEVICES=')[1].split()[0]
-print(cuda_visible_devices)
+# value = config(ip='172.18.36.131', port=12345, GPU_ID=0, MIG_Instace='2g.20gb', Existence=True, MIG_UUID="MIG-47166aa1-8a66-5cba-a964-8dbcf1697934")
+
+# test.do_shecudle(key, value)

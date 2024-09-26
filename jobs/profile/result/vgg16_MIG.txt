@@ -1,0 +1,96 @@
+config: baseline
+batch_Size: 32
+average time: 0.0211922128597099
+tail: 0.021483659744262695
+config: baseline
+batch_Size: 16
+average time: 0.011374917919028976
+tail: 0.011508703231811523
+config: baseline
+batch_Size: 8
+average time: 0.006390409144705426
+tail: 0.0065157413482666016
+config: baseline
+batch_Size: 4
+average time: 0.0036026301508198283
+tail: 0.003639698028564453
+config: 1c-7g-80gb
+batch_Size: 32
+average time: 0.02212113631751112
+tail: 0.02248978614807129
+config: 1c-7g-80gb
+batch_Size: 16
+average time: 0.011720324565986833
+tail: 0.011740446090698242
+config: 1c-7g-80gb
+batch_Size: 8
+average time: 0.00650703978681851
+tail: 0.00662994384765625
+config: 1c-7g-80gb
+batch_Size: 4
+average time: 0.003682559621119069
+tail: 0.0037169456481933594
+config: 1c-4g-40gb
+batch_Size: 32
+average time: 0.03729120308984974
+tail: 0.03735637664794922
+config: 1c-4g-40gb
+batch_Size: 16
+average time: 0.019590280576793847
+tail: 0.01963067054748535
+config: 1c-4g-40gb
+batch_Size: 8
+average time: 0.01074340706597827
+tail: 0.010771512985229492
+config: 1c-4g-40gb
+batch_Size: 4
+average time: 0.005943194181025626
+tail: 0.005961894989013672
+config: 1c-3g-40gb
+batch_Size: 32
+average time: 0.045416058901555555
+tail: 0.04549241065979004
+config: 1c-3g-40gb
+batch_Size: 16
+average time: 0.023924222212277337
+tail: 0.023972272872924805
+config: 1c-3g-40gb
+batch_Size: 8
+average time: 0.01297042269506053
+tail: 0.013001680374145508
+config: 1c-3g-40gb
+batch_Size: 4
+average time: 0.007424237494000452
+tail: 0.007458209991455078
+config: 1c-2g-20gb
+batch_Size: 32
+average time: 0.07398439719825087
+tail: 0.0740816593170166
+config: 1c-2g-20gb
+batch_Size: 16
+average time: 0.03829023737706737
+tail: 0.03835773468017578
+config: 1c-2g-20gb
+batch_Size: 8
+average time: 0.020976861158688225
+tail: 0.021016836166381836
+config: 1c-2g-20gb
+batch_Size: 4
+average time: 0.011998082927329267
+tail: 0.012029886245727539
+config: 1c-1g-10gb
+batch_Size: 32
+average time: 0.14600555954094163
+tail: 0.1461045742034912
+config: 1c-1g-10gb
+batch_Size: 16
+average time: 0.07585852752945466
+tail: 0.07591509819030762
+config: 1c-1g-10gb
+batch_Size: 8
+average time: 0.04170074395999641
+tail: 0.041761159896850586
+config: 1c-1g-10gb
+batch_Size: 4
+average time: 0.023856277934057202
+tail: 0.02389359474182129

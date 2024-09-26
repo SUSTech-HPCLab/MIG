@@ -1,9 +1,13 @@
+import sys
+sys.path.append('/home/zbw/MIG/MIG_Schedule')
+
 import subprocess
 import socket
 import threading
 import subprocess
 import re
 import os
+import util.util
 class Worker:
     def __init__(self, port):
         self.port = port
@@ -23,16 +27,27 @@ class Worker:
             client_socket, client_address = server_socket.accept()
             while True:
                 data = client_socket.recv(1024)
+                if not data:
+                    print(f"Client {client_address[0]}:{client_address[1]} disconnected.")
+                    break
                 received_message = data.decode()
-
                 if received_message == 'config':
                     response_message = 'okk'
                     client_socket.sendall(response_message.encode())
 
                     data = client_socket.recv(1024)
                     received_message = data.decode()
-                    os.system(received_message)
-                    response_message = 'okk'
+                    
+                    result = subprocess.check_output(received_message, shell=True)
+                    result = result.decode().strip()
+
+                    if result == '':
+                        result = 'finish'
+                    GI_ID = util.get_GI_ID(result)
+                    if GI_ID:
+                        result = GI_ID
+                    response_message = result
+
                     client_socket.sendall(response_message.encode())
             
 
@@ -40,18 +55,38 @@ class Worker:
 
                     response_message = 'okk'
                     client_socket.sendall(response_message.encode())
-
                     data = client_socket.recv(1024)
                     received_message = data.decode()
-                   
+      
                     def execute_command(command):
-                        process = subprocess.Popen(command, shell=True)
-                        process.communicate() 
+                        commands = command.split(",")
+                        cmd = ''
+                        if commands[1] == 'Y':
+                            CUDA_MPS_PIPE_DIRECTORY = f'/tmp/{commands[0]}-pipe'
+                            CUDA_MPS_LOG_DIRECTORY=f'/tmp/{commands[0]}-log'
+
+                            cmd=f'cd /home/zbw/MIG/MIG_Schedule/schedule && export CUDA_MPS_PIPE_DIRECTORY={CUDA_MPS_PIPE_DIRECTORY} && export CUDA_MPS_LOG_DIRECTORY={CUDA_MPS_LOG_DIRECTORY} && CUDA_VISIBLE_DEVICES={commands[0]}  python warm.py'
+                            result = subprocess.check_output(cmd, shell=True)
+
+                            cmd = f'export CUDA_MPS_PIPE_DIRECTORY={CUDA_MPS_PIPE_DIRECTORY} && export CUDA_MPS_LOG_DIRECTORY={CUDA_MPS_LOG_DIRECTORY} && export CUDA_VISIBLE_DEVICES={commands[0]} && (echo get_server_list | sudo -E nvidia-cuda-mps-control)'
+                            pid = subprocess.check_output(cmd, shell=True)
+                            pid = pid.decode().strip()
+
+                            # cmd = f'export CUDA_MPS_PIPE_DIRECTORY={CUDA_MPS_PIPE_DIRECTORY} && export CUDA_MPS_LOG_DIRECTORY={CUDA_MPS_LOG_DIRECTORY} && echo set_active_thread_percentage {pid} {commands[5]} | sudo -E nvidia-cuda-mps-control && cd {commands[2]} && CUDA_VISIBLE_DEVICES={commands[0]}  conda run -n {commands[3]} {commands[4]}'
+                            cmd = f'export CUDA_MPS_PIPE_DIRECTORY={CUDA_MPS_PIPE_DIRECTORY} && export CUDA_MPS_LOG_DIRECTORY={CUDA_MPS_LOG_DIRECTORY} && echo set_active_thread_percentage {pid} {commands[5]} | sudo -E nvidia-cuda-mps-control && cd {commands[2]} && CUDA_VISIBLE_DEVICES={commands[0]}  {commands[4]}'
+                            result = subprocess.check_output(cmd, shell=True)
+                        else:
+                            # cmd = f'cd {commands[2]} && CUDA_VISIBLE_DEVICES={commands[0]}  conda run -n {commands[3]} {commands[4]}'
+                            cmd = f'cd {commands[2]} && CUDA_VISIBLE_DEVICES={commands[0]}  {commands[4]}'
+                            result = subprocess.check_output(cmd, shell=True)
+
+
                         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                         server_address = ('172.18.36.119', 11111)
                         client_socket.connect(server_address)
-                        cuda_visible_devices = command.split('CUDA_VISIBLE_DEVICES=')[1].split()[0]
-                        state_change = f'{cuda_visible_devices} idel'
+
+                        cuda_visible_devices = cmd.split('CUDA_VISIBLE_DEVICES=')[1].split()[0]
+                        state_change = f'{cuda_visible_devices},{command}'
 
                         client_socket.sendall(state_change.encode())
                         client_socket.close()
@@ -62,10 +97,6 @@ class Worker:
 
                     response_message = 'okk'
                     client_socket.sendall(response_message.encode())
-
-
-                if response_message == 'finish':
-                    server_socket.close()
 
 
     def return_uuid(self, server_port=22222):

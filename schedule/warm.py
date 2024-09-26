@@ -24,11 +24,8 @@ input =  torch.randn(32, 3, 256, 256).cuda(0)
 torch.cuda.synchronize()
 time_list = []
 with torch.no_grad():
-    for i in range(0, 100):
+    for i in range(0, 5):
         start = time.time()
         output= model(input).cpu()
         time_list.append(time.time() - start)
-
-with open('/home/zbw/MIG/MIG_Schedule/schedule/tep', "a+") as f:
-    f.write(str(average_without_min_max(time_list)) +"\n")
 

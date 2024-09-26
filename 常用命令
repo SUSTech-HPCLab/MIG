@@ -1,0 +1,22 @@
+# ====== 启动 =========
+MPS 相关的指令
+export CUDA_MPS_PIPE_DIRECTORY=/tmp/nvidia-mps # Select a location that’s accessible to the given $UID 
+export CUDA_MPS_LOG_DIRECTORY=/tmp/nvidia-log # Select a location that’s accessible to the given $UID
+export CUDA_VISIBLE_DEVICES=0         # 这里以GPU0为例，其他卡类似
+nvidia-smi -i 0 -c EXCLUSIVE_PROCESS  # 让GPU0变为独享模式。
+nvidia-cuda-mps-control -d            # 开启mps服务 
+# ====== 查看 =========
+ps -ef | grep mps                     # 启动成功后能看到相应的进程
+# ====== 停止 =========
+nvidia-smi -i 0 -c DEFAULT       # 让GPU恢复为默认模式。
+echo quit | sudo -E nvidia-cuda-mps-control   # 关闭mps服务   
+
+echo quit | sudo -E  nvidia-cuda-mps-control
+sudo -E nvidia-cuda-mps-control -d && (echo start_server -uid 1002 | sudo -E nvidia-cuda-mps-control) 
+echo  get_server_list | sudo -E nvidia-cuda-mps-control
+
+echo get_active_thread_percentage 946921 | sudo -E nvidia-cuda-mps-control
+MIG 相关命令
+sudo nvidia-smi mig -dci -i 0 -gi 5 -ci 0 &&  sudo nvidia-smi mig -dgi -i 0 -gi 5
+
+
